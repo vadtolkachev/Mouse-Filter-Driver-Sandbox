@@ -1,0 +1,24 @@
+﻿  Building 'mou-filter' with toolset 'WindowsKernelModeDriver10.0' and the 'Desktop' target platform.
+  Stamping x64\Debug\mou-filter.inf
+  Stamping [Version] section with DriverVer=05/20/2020,7.52.30.465
+  drv.c
+C:\Users\mrwin\source\repos\mou-filter\mou-filter\drv.c(24,10): warning C4201: nonstandard extension used: nameless struct/union
+C:\Users\mrwin\source\repos\mou-filter\mou-filter\drv.c(25,6): warning C4201: nonstandard extension used: nameless struct/union
+  mou-filter.vcxproj -> C:\Users\mrwin\source\repos\mou-filter\x64\Debug\mou-filter.sys
+  Done Adding Additional Store
+  Successfully signed: C:\Users\mrwin\source\repos\mou-filter\x64\Debug\mou-filter.sys
+  
+  ........................
+  Signability test complete.
+  
+  Errors:
+  None
+  
+  Warnings:
+  None
+  
+  Catalog generation complete.
+  C:\Users\mrwin\source\repos\mou-filter\x64\Debug\mou-filter\mou-filter.cat
+  Done Adding Additional Store
+  Successfully signed: C:\Users\mrwin\source\repos\mou-filter\x64\Debug\mou-filter\mou-filter.cat
+  
