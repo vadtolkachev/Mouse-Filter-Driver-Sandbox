@@ -5,7 +5,7 @@
 
 typedef struct _DEVICE_EXTENTION
 {
-    PDEVICE_OBJECT LowerKbdDevice;
+    PDEVICE_OBJECT LowerMouDevice;
 }
 DEVICE_EXTENTION, *PDEVICE_EXTENTION;
 
@@ -30,6 +30,19 @@ typedef struct _MOUSE_INPUT_DATA
 }
 MOUSE_INPUT_DATA, *PMOUSE_INPUT_DATA;
 
+
+#define MOUSE_MOVE_RELATIVE 0x00
+#define MOUSE_MOVE_ABSOLUTE 0x01
+#define MOUSE_VIRTUAL_DESKTOP 0x02
+#define MOUSE_ATTRIBUTES_CHANGED 0x04
+#define MOUSE_MOVE_NOCOALESCE 0x08
+
+#define MOUSE_LEFT_BUTTON_DOWN 0x01
+#define MOUSE_LEFT_BUTTON_UP 0x02
+#define MOUSE_RIGHT_BUTTON_DOWN 0x04
+#define MOUSE_RIGHT_BUTTON_UP 0x08
+#define MOUSE_MIDDLE_BUTTON_DOWN 0x10
+#define MOUSE_MIDDLE_BUTTON_UP 0x20
 
 extern POBJECT_TYPE *IoDriverObjectType;
 
@@ -57,11 +70,20 @@ IO_COMPLETION_ROUTINE ReadComplete;
 NTSTATUS MyAttachDevice(PDRIVER_OBJECT DriverObject);
 
 
+#define COMBINATION_SIZE 4
+USHORT combination_buffer[COMBINATION_SIZE] = { 0 };
+const USHORT right_combination[COMBINATION_SIZE] = { MOUSE_LEFT_BUTTON_DOWN, MOUSE_RIGHT_BUTTON_DOWN, MOUSE_RIGHT_BUTTON_UP, MOUSE_LEFT_BUTTON_UP };
+unsigned position = 0;
+BOOLEAN shouldInvert = FALSE;
+
+
 _Use_decl_annotations_
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 {
     UNREFERENCED_PARAMETER(RegistryPath);
     DbgPrint("DriverEntry\n");
+
+    DriverObject->DriverUnload = Unload;
 
     for(int i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++)
     {
@@ -80,7 +102,7 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
         DbgPrint("MyAttachDevice success\n");
     }
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 
@@ -96,7 +118,7 @@ VOID Unload(PDRIVER_OBJECT DriverObject)
 
     while(DeviceObject)
     {
-        IoDetachDevice(((PDEVICE_EXTENTION)DeviceObject->DeviceExtension)->LowerKbdDevice);
+        IoDetachDevice(((PDEVICE_EXTENTION)DeviceObject->DeviceExtension)->LowerMouDevice);
         DeviceObject = DeviceObject->NextDevice;
     }
 
@@ -118,7 +140,7 @@ _Use_decl_annotations_
 NTSTATUS DispatchPass(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 {
     IoCopyCurrentIrpStackLocationToNext(Irp);
-    return IoCallDriver(((PDEVICE_EXTENTION)DeviceObject->DeviceExtension)->LowerKbdDevice, Irp);
+    return IoCallDriver(((PDEVICE_EXTENTION)DeviceObject->DeviceExtension)->LowerMouDevice, Irp);
 }
 
 
@@ -131,7 +153,7 @@ NTSTATUS DispatchRead(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 
     pendingKey++;
 
-    return IoCallDriver(((PDEVICE_EXTENTION)DeviceObject->DeviceExtension)->LowerKbdDevice, Irp);
+    return IoCallDriver(((PDEVICE_EXTENTION)DeviceObject->DeviceExtension)->LowerMouDevice, Irp);
 }
 
 
@@ -142,14 +164,39 @@ NTSTATUS ReadComplete(PDEVICE_OBJECT DeviceObject, PIRP Irp, PVOID Context)
     UNREFERENCED_PARAMETER(Context);
 
     PMOUSE_INPUT_DATA Keys = (PMOUSE_INPUT_DATA)Irp->AssociatedIrp.SystemBuffer;
-    int structnum = (int)(Irp->IoStatus.Information / sizeof(MOUSE_INPUT_DATA));
+    USHORT flags = Keys->ButtonFlags;
+
 
     if(Irp->IoStatus.Status == STATUS_SUCCESS)
     {
-        for(int i = 0; i < structnum; i++)
+        NT_ASSERT(position <= 3);
+
+        if(flags == MOUSE_LEFT_BUTTON_DOWN || flags == MOUSE_LEFT_BUTTON_UP || flags == MOUSE_RIGHT_BUTTON_DOWN || flags == MOUSE_RIGHT_BUTTON_UP)
         {
-            DbgPrint("the button state is %x\n", Keys->ButtonFlags);
+            combination_buffer[position] = Keys->ButtonFlags;
+            if(combination_buffer[position] == right_combination[position])
+            {
+                position++;
+                if(position == COMBINATION_SIZE)
+                {
+                    DbgPrint("invertion\n");
+                    shouldInvert = !shouldInvert;
+                    position = 0;
+                }
+            }
+            else
+                position = 0;
         }
+
+
+        if(shouldInvert && (Keys->Flags & MOUSE_MOVE_ABSOLUTE))
+        {
+            Keys->LastY = 65535 - Keys->LastY;
+        }
+
+        /*for(int i = 0; i < COMBINATION_SIZE; i++)
+            DbgPrint("combination_buffer[%d]; ", combination_buffer[i]);
+        DbgPrint("\n");*/
     }
 
     if(Irp->PendingReturned)
@@ -193,7 +240,7 @@ NTSTATUS MyAttachDevice(PDRIVER_OBJECT DriverObject)
 
         RtlZeroMemory(myDeviceObject->DeviceExtension, sizeof(DEVICE_EXTENTION));
 
-        status = IoAttachDeviceToDeviceStackSafe(myDeviceObject, currentDeviceObject, &((PDEVICE_EXTENTION)myDeviceObject->DeviceExtension)->LowerKbdDevice);
+        status = IoAttachDeviceToDeviceStackSafe(myDeviceObject, currentDeviceObject, &((PDEVICE_EXTENTION)myDeviceObject->DeviceExtension)->LowerMouDevice);
         if(!NT_SUCCESS(status))
         {
             //TODO: proper error handling, deleteing multiple devices

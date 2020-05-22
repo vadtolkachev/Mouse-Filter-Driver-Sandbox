@@ -7,7 +7,7 @@ Signature="$WINDOWS NT$"
 Class=System
 ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider=%ManufacturerName%
-DriverVer = 05/20/2020,7.52.30.465
+DriverVer = 05/22/2020,15.20.25.921
 CatalogFile=mou-filter.cat
 
 [DestinationDirs]
