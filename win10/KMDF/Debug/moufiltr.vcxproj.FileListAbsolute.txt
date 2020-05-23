@@ -1,2 +1,0 @@
-C:\Users\mrwin\Downloads\mouse-filter\test\moufiltr\Debug\moufiltr.sys
-C:\Users\mrwin\Downloads\mouse-filter\test\moufiltr\Debug\moufiltr.pdb
