@@ -10,49 +10,35 @@
 
 typedef struct _DEVICE_EXTENSION
 {
- 
-     //
-    // Previous hook routine and context
-    //                               
+    // Previous hook routine and context                             
     PVOID UpperContext;
      
     PI8042_MOUSE_ISR UpperIsrHook;
 
-    //
     // Write to the mouse in the context of MouFilter_IsrHook
-    //
-    IN PI8042_ISR_WRITE_PORT IsrWritePort;
+    _In_ PI8042_ISR_WRITE_PORT IsrWritePort;
 
-    //
     // Context for IsrWritePort, QueueMousePacket
-    //
-    IN PVOID CallContext;
+    _In_ PVOID CallContext;
 
-    //
     // Queue the current packet (ie the one passed into MouFilter_IsrHook)
     // to be reported to the class driver
-    //
-    IN PI8042_QUEUE_PACKET QueueMousePacket;
+    _In_ PI8042_QUEUE_PACKET QueueMousePacket;
 
-    //
     // The real connect data that this driver reports to
-    //
     CONNECT_DATA UpperConnectData;
+} 
+DEVICE_EXTENSION, *PDEVICE_EXTENSION;
 
-  
-} DEVICE_EXTENSION, *PDEVICE_EXTENSION;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_EXTENSION, FilterGetData)
  
-//
-// Prototypes
-//
+
 DRIVER_INITIALIZE DriverEntry;
 
 EVT_WDF_DRIVER_DEVICE_ADD MouFilter_EvtDeviceAdd;
 EVT_WDF_IO_QUEUE_IO_INTERNAL_DEVICE_CONTROL MouFilter_EvtIoInternalDeviceControl;
  
-
 
 VOID MouFilter_DispatchPassThrough(_In_ WDFREQUEST Request, _In_ WDFIOTARGET Target);
 
